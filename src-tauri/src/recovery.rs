@@ -99,7 +99,7 @@ pub struct ScanConfig {
     pub min_file_size: u64,
     pub skip_duplicates: bool,
     pub preserve_structure: bool,
-    auto_recover: bool,
+    pub auto_recover: bool,
     pub recover_metadata: bool,
     pub verbose: bool,
 }
