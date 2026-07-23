@@ -6,13 +6,13 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  build-windows:
-    name: Build Windows (32 & 64-bit)
+  build-windows-64:
+    name: Build Windows 64-bit
     runs-on: windows-latest
-    strategy:
-      matrix:
-        target: [x86_64-pc-windows-msvc, i686-pc-windows-msvc]
     steps:
       - uses: actions/checkout@v4
 
@@ -21,16 +21,18 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Rust
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
 
       - name: Install frontend dependencies
         run: npm install
-
-      - name: Install Tauri CLI
-        run: npm install -g @tauri-apps/cli
 
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0
@@ -39,10 +41,48 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: 'Restora v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
+          releaseBody: 'Restora - Lightweight File Recovery Tool'
           releaseDraft: true
           prerelease: false
-          args: --target ${{ matrix.target }}
+
+  build-windows-32:
+    name: Build Windows 32-bit
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Rust stable with 32-bit target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: i686-pc-windows-msvc
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Build Tauri App (32-bit)
+        run: |
+          npm install -g @tauri-apps/cli
+          npx tauri build --target i686-pc-windows-msvc
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload 32-bit artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-32bit
+          path: |
+            src-tauri/target/i686-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/i686-pc-windows-msvc/release/bundle/msi/*.msi
 
   build-ubuntu:
     name: Build Ubuntu (deb & AppImage)
@@ -55,13 +95,18 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Rust
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
 
       - name: Install frontend dependencies
         run: npm install
@@ -73,7 +118,7 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: 'Restora v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
+          releaseBody: 'Restora - Lightweight File Recovery Tool'
           releaseDraft: true
           prerelease: false
 
@@ -88,8 +133,13 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Rust
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
 
       - name: Install frontend dependencies
         run: npm install
@@ -101,13 +151,13 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: 'Restora v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
+          releaseBody: 'Restora - Lightweight File Recovery Tool'
           releaseDraft: true
           prerelease: false
 
-  create-release:
-    name: Create Release
-    needs: [build-windows, build-ubuntu, build-macos]
+  publish-release:
+    name: Publish Release
+    needs: [build-windows-64, build-windows-32, build-ubuntu, build-macos]
     runs-on: ubuntu-22.04
     if: startsWith(github.ref, 'refs/tags/')
     steps:
@@ -118,7 +168,10 @@ jobs:
         with:
           path: artifacts
 
-      - name: Create Release
+      - name: Display structure of downloaded files
+        run: ls -R artifacts/
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
@@ -130,5 +183,23 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+          name: 'Restora v1.0.0 - File Recovery Tool'
+          body: |
+            ## 🔄 Restora v1.0.0
+
+            ### Instalação
+            - **Windows 64-bit**: `Restora_1.0.0_x64-setup.exe`
+            - **Windows 32-bit**: `Restora_1.0.0_x86-setup.exe` (PCs antigos)
+            - **Linux (Debian/Ubuntu)**: `restora_1.0.0_amd64.deb`
+            - **Linux (AppImage)**: `Restora_1.0.0_amd64.AppImage`
+            - **macOS**: `Restora_1.0.0_x64.dmg`
+
+            ### Recursos
+            - 🔍 Scan rápido e profundo
+            - 🖼️ Recuperação de imagens, vídeos, áudios, documentos
+            - 🔧 Reparo automático de arquivos danificados
+            - 🖼️ Filtro de thumbnails
+            - 💻 Funciona com 2GB de RAM
+            - 🖥️ Suporte a 32-bit Windows
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
