@@ -6,7 +6,7 @@
 mod recovery;
 
 use recovery::*;
-use tauri::{Manager, State};
+use tauri::State;
 use std::sync::Mutex;
 
 struct AppState {
@@ -121,7 +121,7 @@ fn filter_files(
 ) -> Result<Vec<RecoveredFile>, String> {
     let stored = state.scan_results.lock().map_err(|e| e.to_string())?;
 
-    let mut filtered: Vec<RecoveredFile> = stored
+    let filtered: Vec<RecoveredFile> = stored
         .iter()
         .filter(|f| {
             if let Some(ref cat) = category {
@@ -154,7 +154,7 @@ fn filter_files(
 }
 
 #[tauri::command]
-fn select_folder(app: tauri::AppHandle) -> Result<String, String> {
+fn select_folder(_app: tauri::AppHandle) -> Result<String, String> {
     // Use tauri dialog
     let result = tauri::api::dialog::blocking::FileDialogBuilder::new()
         .set_title("Select Recovery Destination")

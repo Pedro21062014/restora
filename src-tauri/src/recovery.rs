@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fs;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
@@ -654,7 +653,7 @@ fn repair_png(path: &PathBuf) {
 
 fn repair_video(path: &PathBuf) {
     // Basic video repair: check and fix container headers
-    if let Ok(mut data) = fs::read(path) {
+    if let Ok(data) = fs::read(path) {
         if data.len() < 12 {
             return;
         }
@@ -669,6 +668,7 @@ fn repair_video(path: &PathBuf) {
             log::warn!("Video file missing moov atom, needs external repair: {:?}", path);
         }
 
+        // Re-write to ensure file integrity
         let _ = fs::write(path, &data);
     }
 }
