@@ -50,6 +50,7 @@ interface FileCategory {
 }
 
 type View = "home" | "scan" | "results" | "settings";
+type Theme = "dark" | "light";
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -60,6 +61,8 @@ function formatBytes(bytes: number): string {
 }
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+  const [theme, setTheme] = useState<Theme>("dark");
   const [view, setView] = useState<View>("home");
   const [drives, setDrives] = useState<DriveInfo[]>([]);
   const [selectedDrive, setSelectedDrive] = useState<DriveInfo | null>(null);
@@ -84,9 +87,20 @@ function App() {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
-    loadDrives();
-    loadCategories();
+    const splashTimer = setTimeout(() => setShowSplash(false), 2500);
+    return () => clearTimeout(splashTimer);
   }, []);
+
+  useEffect(() => {
+    if (!showSplash) {
+      loadDrives();
+      loadCategories();
+    }
+  }, [showSplash]);
+
+  useEffect(() => {
+    document.body.className = theme;
+  }, [theme]);
 
   const loadDrives = async () => {
     try {
@@ -111,9 +125,9 @@ function App() {
         { id: "all", name: "Todos os Arquivos", icon: "📁", extensions: ["*"] },
         { id: "images", name: "Imagens", icon: "🖼️", extensions: ["jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "cr2", "heic"] },
         { id: "videos", name: "Vídeos", icon: "🎬", extensions: ["mp4", "avi", "mkv", "mov", "flv", "wmv", "webm"] },
-        { id: "audio", name: "Áudios", icon: "🎵", extensions: ["mp3", "wav", "flac", "ogg", "aac", "m4a", "wma"] },
+        { id: "audio", name: "Áudios", icon: "", extensions: ["mp3", "wav", "flac", "ogg", "aac", "m4a", "wma"] },
         { id: "documents", name: "Documentos", icon: "", extensions: ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "rtf"] },
-        { id: "archives", name: "Arquivos Compactados", icon: "📦", extensions: ["zip", "rar", "7z", "tar", "gz"] },
+        { id: "archives", name: "Arquivos Compactados", icon: "", extensions: ["zip", "rar", "7z", "tar", "gz"] },
       ]);
     }
   };
@@ -146,7 +160,7 @@ function App() {
   };
 
   const startScan = async () => {
-    if (!selectedDrive) { showToast("⚠️ Selecione um disco para escanear", "error"); return; }
+    if (!selectedDrive) { showToast("️ Selecione um disco para escanear", "error"); return; }
     if (!destination) { showToast("⚠️ Selecione uma pasta de destino", "error"); return; }
 
     const config: ScanConfig = {
@@ -189,7 +203,7 @@ function App() {
     } catch (e) {
       clearInterval(progressInterval);
       setIsScanning(false);
-      showToast(`❌ Erro no scan: ${e}`, "error");
+      showToast(` Erro no scan: ${e}`, "error");
     }
   };
 
@@ -213,7 +227,7 @@ function App() {
       }));
       showToast(`✅ ${recovered.length} arquivos recuperados!`, "success");
     } catch (e) {
-      showToast(` Erro na recuperação: ${e}`, "error");
+      showToast(`❌ Erro na recuperação: ${e}`, "error");
     }
   };
 
@@ -259,7 +273,7 @@ function App() {
 
   const getFileIcon = (category: string) => {
     const icons: Record<string, string> = {
-      images: "🖼️", videos: "", audio: "🎵",
+      images: "️", videos: "🎬", audio: "",
       documents: "📄", archives: "", emails: "📧", databases: "🗄️",
     };
     return icons[category] || "📁";
@@ -277,13 +291,28 @@ function App() {
     </div>
   );
 
+  if (showSplash) {
+    return (
+      <div className="splash-screen">
+        <div className="splash-content">
+          <img src="/logo.png" alt="Restora" className="splash-logo" />
+          <h1 className="splash-title">Restora</h1>
+          <p className="splash-subtitle">File Recovery Tool</p>
+          <div className="splash-loader">
+            <div className="splash-loader-bar" />
+          </div>
+          <p className="splash-version">v1.0.1</p>
+        </div>
+      </div>
+    );
+  }
+
   const renderHome = () => (
     <div className="content-area">
-      {/* DISK SELECTION */}
       <div className="section">
         <div className="section-header">
           <h2 className="section-title">
-            <span className="section-icon"></span>
+            <span className="section-icon">💽</span>
             Selecione o Disco
           </h2>
           <span className="section-badge">{drives.length} discos encontrados</span>
@@ -291,7 +320,7 @@ function App() {
 
         {drives.length === 0 ? (
           <div className="empty-state">
-            <div className="icon"></div>
+            <div className="icon">🔍</div>
             <h3>Nenhum disco encontrado</h3>
             <p>Conecte um disco ou unidade e tente novamente.</p>
             <button className="btn btn-secondary" onClick={loadDrives} style={{ marginTop: 16 }}>
@@ -351,11 +380,10 @@ function App() {
         )}
       </div>
 
-      {/* FILE TYPE */}
       <div className="section">
         <div className="section-header">
           <h2 className="section-title">
-            <span className="section-icon"></span>
+            <span className="section-icon">📂</span>
             Tipo de Arquivo
           </h2>
           {selectedCategories.length > 0 && (
@@ -383,7 +411,6 @@ function App() {
         </div>
       </div>
 
-      {/* SCAN TYPE */}
       <div className="section">
         <h2 className="section-title">
           <span className="section-icon"></span>
@@ -397,7 +424,7 @@ function App() {
             <div className="scan-type-time">~2-5 minutos</div>
           </div>
           <div className={`scan-type-card ${scanType === "deep" ? "selected" : ""}`} onClick={() => setScanType("deep")}>
-            <div className="scan-type-icon"></div>
+            <div className="scan-type-icon">🔍</div>
             <div className="scan-type-name">Profundo</div>
             <div className="scan-type-desc">Lê setor por setor buscando assinaturas de arquivos.</div>
             <div className="scan-type-time">~15-60 minutos</div>
@@ -405,10 +432,9 @@ function App() {
         </div>
       </div>
 
-      {/* DESTINATION */}
       <div className="section">
         <h2 className="section-title">
-          <span className="section-icon">📁</span>
+          <span className="section-icon"></span>
           Pasta de Destino
         </h2>
         <div className="folder-input">
@@ -431,7 +457,6 @@ function App() {
         )}
       </div>
 
-      {/* ADVANCED */}
       <div className="section">
         <button className="btn btn-secondary advanced-toggle" onClick={() => setShowAdvanced(!showAdvanced)}>
           <span className={`advanced-arrow ${showAdvanced ? "open" : ""}`}>▶</span>
@@ -440,8 +465,8 @@ function App() {
         {showAdvanced && (
           <div className="card advanced-card">
             <ToggleOption label=" Filtrar Thumbnails" desc="Não salvar imagens de preview e thumbnails pequenas" value={filterThumbnails} onChange={setFilterThumbnails} />
-            <ToggleOption label="🔧 Reparar Arquivos Danificados" desc="Tentar reparar automaticamente arquivos corrompidos" value={repairDamaged} onChange={setRepairDamaged} />
-            <ToggleOption label="📋 Pular Duplicatas" desc="Não recuperar arquivos já existentes no destino" value={skipDuplicates} onChange={setSkipDuplicates} />
+            <ToggleOption label=" Reparar Arquivos Danificados" desc="Tentar reparar automaticamente arquivos corrompidos" value={repairDamaged} onChange={setRepairDamaged} />
+            <ToggleOption label=" Pular Duplicatas" desc="Não recuperar arquivos já existentes no destino" value={skipDuplicates} onChange={setSkipDuplicates} />
             <ToggleOption label="📂 Preservar Estrutura de Pastas" desc="Manter a estrutura de diretórios original" value={preserveStructure} onChange={setPreserveStructure} />
             <ToggleOption label="🚀 Auto-Recuperar" desc="Recuperar automaticamente ao encontrar arquivos" value={autoRecover} onChange={setAutoRecover} />
             <ToggleOption label="📊 Recuperar Metadados (EXIF, datas)" desc="Preservar data, hora e informações EXIF dos arquivos" value={recoverMetadata} onChange={setRecoverMetadata} />
@@ -459,7 +484,6 @@ function App() {
         )}
       </div>
 
-      {/* START SCAN */}
       <div className="start-scan-section">
         <button
           className="btn btn-primary btn-lg start-scan-btn"
@@ -586,7 +610,20 @@ function App() {
           Configurações
         </h2>
         <div className="card">
-          <ToggleOption label="🎨 Tema Escuro" desc="Usar tema escuro na interface" value={true} onChange={() => {}} />
+          <div className="toggle-group">
+            <div className="toggle-info">
+              <span className="toggle-label"> Tema</span>
+              <span className="toggle-desc">Alterar entre tema escuro e claro</span>
+            </div>
+            <div className="theme-toggle-btns">
+              <button className={`theme-btn ${theme === "dark" ? "active" : ""}`} onClick={() => setTheme("dark")}>
+                 Escuro
+              </button>
+              <button className={`theme-btn ${theme === "light" ? "active" : ""}`} onClick={() => setTheme("light")}>
+                 Claro
+              </button>
+            </div>
+          </div>
           <ToggleOption label="🔔 Notificações" desc="Receber notificações ao completar operações" value={true} onChange={() => {}} />
           <ToggleOption label="💾 Salvar Configurações" desc="Lembrar configurações entre sessões" value={true} onChange={() => {}} />
           <ToggleOption label="🔍 Preview de Arquivos" desc="Mostrar miniatura dos arquivos encontrados" value={true} onChange={() => {}} />
@@ -605,13 +642,13 @@ function App() {
           </div>
           <div className="about-info">
             <h3 className="about-title">Restora</h3>
-            <p className="about-version">Versão 1.0.0</p>
+            <p className="about-version">Versão 1.0.1</p>
             <p className="about-desc">
               Ferramenta de recuperação de arquivos leve e minimalista.
               Encontra e restaura arquivos deletados de qualquer disco ou unidade de armazenamento.
             </p>
             <div className="about-features">
-              <span> Rápido</span>
+              <span>⚡ Rápido</span>
               <span>🖥️ 2GB RAM</span>
               <span>🔧 Reparo</span>
               <span>📱 32-bit</span>
@@ -629,12 +666,12 @@ function App() {
           <img src="/logo.png" alt="Restora" className="logo-img" />
           <div className="logo-text">
             <h1>Restora</h1>
-            <span>File Recovery v1.0</span>
+            <span>v1.0.1 • File Recovery</span>
           </div>
         </div>
         <div className="sidebar-nav">
           <button className={`nav-item ${view === "home" ? "active" : ""}`} onClick={() => setView("home")}>
-            <span className="icon">🏠</span> Início
+            <span className="icon"></span> Início
           </button>
           <button className={`nav-item ${view === "scan" ? "active" : ""}`} onClick={() => setView("scan")}>
             <span className="icon">🔍</span> Escanear
@@ -654,7 +691,11 @@ function App() {
               <span>{selectedDrive.name}</span>
             </div>
           )}
-          <p>Restora © 2026</p>
+          <div className="theme-toggle-sidebar" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+            <span>{theme === "dark" ? "" : "☀️"}</span>
+            <span>Tema {theme === "dark" ? "Escuro" : "Claro"}</span>
+          </div>
+          <p>Restora © 2026 • v1.0.1</p>
           <p>Leve & Rápido • 2GB RAM </p>
         </div>
       </div>
@@ -684,7 +725,7 @@ function App() {
 
       {toast && (
         <div className={`toast ${toast.type}`}>
-          <span>{toast.type === "success" ? "✅" : "❌"}</span>
+          <span>{toast.type === "success" ? "✅" : ""}</span>
           <span>{toast.message}</span>
         </div>
       )}
