@@ -6,8 +6,8 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "Restora",
-    "version": "1.0.1"
+      "productName": "Restora",
+      "version": "1.0.2"
   },
   "tauri": {
     "allowlist": {

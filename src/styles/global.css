@@ -246,7 +246,23 @@ input, select { font-family: inherit; outline: none; }
 
 .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
 .nav-item.active { background: var(--accent-dim); color: var(--accent); }
-.nav-item .icon { font-size: 18px; width: 24px; text-align: center; }
+
+.nav-icon {
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+
+.nav-item:hover .nav-icon {
+  transform: scale(1.1);
+}
+
+.nav-label {
+  flex: 1;
+}
+
+.nav-item.active .nav-icon {
+  color: var(--accent);
+}
 
 .nav-badge {
   margin-left: auto;
@@ -307,6 +323,15 @@ input, select { font-family: inherit; outline: none; }
 .theme-toggle-sidebar:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+.theme-icon {
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+
+.theme-toggle-sidebar:hover .theme-icon {
+  transform: scale(1.15);
 }
 
 /* ===== HEADER ===== */
@@ -436,10 +461,21 @@ input, select { font-family: inherit; outline: none; }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
 }
 
-.drive-card.selected .drive-icon-wrapper { background: var(--accent); }
+.drive-icon-wrapper svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2;
+}
+
+.drive-card.selected .drive-icon-wrapper {
+  background: var(--accent);
+}
+
+.drive-card.selected .drive-icon-wrapper svg {
+  color: var(--bg-primary);
+}
 
 .drive-check {
   width: 24px;
@@ -452,6 +488,12 @@ input, select { font-family: inherit; outline: none; }
   justify-content: center;
   font-size: 12px;
   font-weight: 700;
+}
+
+.drive-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .drive-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary); }

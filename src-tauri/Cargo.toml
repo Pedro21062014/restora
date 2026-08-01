@@ -1,6 +1,6 @@
 [package]
 name = "restora"
-version = "1.0.1"
+version = "1.0.2"
 description = "Restora - Minimalist File Recovery Tool"
 authors = ["Restora"]
 license = "MIT"

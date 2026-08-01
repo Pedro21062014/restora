@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
 import { open } from "@tauri-apps/api/dialog";
+import {
+  HomeIcon,
+  SearchIcon,
+  ListIcon,
+  SettingsIcon,
+  HardDriveIcon,
+  UsbIcon,
+  NetworkIcon,
+  DiscIcon,
+  MoonIcon,
+  SunIcon,
+} from "./icons";
 
 interface DriveInfo {
   name: string;
@@ -260,14 +272,14 @@ function App() {
 
   const getDriveIcon = (type: string) => {
     switch (type) {
-      case "local": return "";
-      case "usb": return "";
-      case "network": return "";
-      case "removable": return "";
-      case "home": return "";
-      case "partition": return "";
-      case "disk": return "";
-      default: return "";
+      case "local": return <HardDriveIcon size={24} color="var(--accent)" />;
+      case "usb": return <UsbIcon size={24} color="var(--accent)" />;
+      case "network": return <NetworkIcon size={24} color="var(--accent)" />;
+      case "removable": return <DiscIcon size={24} color="var(--accent)" />;
+      case "home": return <HomeIcon size={24} color="var(--accent)" />;
+      case "partition": return <HardDriveIcon size={24} color="var(--accent)" />;
+      case "disk": return <HardDriveIcon size={24} color="var(--accent)" />;
+      default: return <HardDriveIcon size={24} color="var(--accent)" />;
     }
   };
 
@@ -301,7 +313,7 @@ function App() {
           <div className="splash-loader">
             <div className="splash-loader-bar" />
           </div>
-          <p className="splash-version">v1.0.1</p>
+          <p className="splash-version">v1.0.2</p>
         </div>
       </div>
     );
@@ -642,7 +654,7 @@ function App() {
           </div>
           <div className="about-info">
             <h3 className="about-title">Restora</h3>
-            <p className="about-version">Versão 1.0.1</p>
+            <p className="about-version">Versão 1.0.2</p>
             <p className="about-desc">
               Ferramenta de recuperação de arquivos leve e minimalista.
               Encontra e restaura arquivos deletados de qualquer disco ou unidade de armazenamento.
@@ -666,22 +678,26 @@ function App() {
           <img src="/logo.png" alt="Restora" className="logo-img" />
           <div className="logo-text">
             <h1>Restora</h1>
-            <span>v1.0.1 • File Recovery</span>
+            <span>v1.0.2 • File Recovery</span>
           </div>
         </div>
         <div className="sidebar-nav">
           <button className={`nav-item ${view === "home" ? "active" : ""}`} onClick={() => setView("home")}>
-            <span className="icon"></span> Início
+            <HomeIcon size={18} className="nav-icon" />
+            <span className="nav-label">Início</span>
           </button>
           <button className={`nav-item ${view === "scan" ? "active" : ""}`} onClick={() => setView("scan")}>
-            <span className="icon">🔍</span> Escanear
+            <SearchIcon size={18} className="nav-icon" />
+            <span className="nav-label">Escanear</span>
           </button>
           <button className={`nav-item ${view === "results" ? "active" : ""}`} onClick={() => setView("results")}>
-            <span className="icon">📋</span> Resultados
+            <ListIcon size={18} className="nav-icon" />
+            <span className="nav-label">Resultados</span>
             {results.length > 0 && <span className="nav-badge">{results.length}</span>}
           </button>
           <button className={`nav-item ${view === "settings" ? "active" : ""}`} onClick={() => setView("settings")}>
-            <span className="icon">⚙️</span> Configurações
+            <SettingsIcon size={18} className="nav-icon" />
+            <span className="nav-label">Configurações</span>
           </button>
         </div>
         <div className="sidebar-footer">
@@ -692,10 +708,10 @@ function App() {
             </div>
           )}
           <div className="theme-toggle-sidebar" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-            <span>{theme === "dark" ? "" : "☀️"}</span>
+            {theme === "dark" ? <MoonIcon size={14} className="theme-icon" /> : <SunIcon size={14} className="theme-icon" />}
             <span>Tema {theme === "dark" ? "Escuro" : "Claro"}</span>
           </div>
-          <p>Restora © 2026 • v1.0.1</p>
+          <p>Restora © 2026 • v1.0.2</p>
           <p>Leve & Rápido • 2GB RAM </p>
         </div>
       </div>
