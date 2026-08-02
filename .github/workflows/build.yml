@@ -40,6 +40,10 @@ jobs:
       - name: Build Tauri App
         run: npx tauri build --target x86_64-pc-windows-msvc
 
+      - name: Rename standalone exe
+        run: |
+          cp src-tauri/target/x86_64-pc-windows-msvc/release/restora.exe Restora.exe
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -47,6 +51,7 @@ jobs:
           path: |
             src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
             src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
+            Restora.exe
 
   build-windows-32:
     name: Build Windows 32-bit
@@ -78,6 +83,10 @@ jobs:
       - name: Build Tauri App (32-bit)
         run: npx tauri build --target i686-pc-windows-msvc
 
+      - name: Rename standalone exe (32-bit)
+        run: |
+          cp src-tauri/target/i686-pc-windows-msvc/release/restora.exe Restora-x86.exe
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -85,6 +94,7 @@ jobs:
           path: |
             src-tauri/target/i686-pc-windows-msvc/release/bundle/nsis/*.exe
             src-tauri/target/i686-pc-windows-msvc/release/bundle/msi/*.msi
+            Restora-x86.exe
 
   build-ubuntu:
     name: Build Ubuntu (deb & AppImage)
@@ -202,10 +212,12 @@ jobs:
 
             | Plataforma | Arquivo |
             |------------|---------|
-            | ️ Windows 64-bit | `Restora_*_x64-setup.exe` |
-            | 🖥️ Windows 32-bit (PCs antigos) | `Restora-Setup-*_ia32.exe` |
+            | ️ Windows 64-bit (direto) | `Restora.exe` |
+            | ️ Windows 32-bit direto (PCs antigos) | `Restora-x86.exe` |
+            | 🖥️ Windows 64-bit (instalador) | `Restora_*_x64-setup.exe` |
+            | 🖥️ Windows 32-bit (instalador) | `Restora-Setup-*_ia32.exe` |
             | 🐧 Linux .deb | `restora_*_amd64.deb` |
-            | 🐧 Linux AppImage | `restora_*_amd64.AppImage` |
+            |  Linux AppImage | `restora_*_amd64.AppImage` |
             | 🐧 Linux RPM | `restora-*-1.x86_64.rpm` |
             | 🍎 macOS DMG | `Restora_*_aarch64.dmg` |
 
