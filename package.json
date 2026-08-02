@@ -1,6 +1,6 @@
 {
   "name": "restora",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Restora - Minimalist File Recovery Tool",
   "scripts": {
     "dev": "vite",

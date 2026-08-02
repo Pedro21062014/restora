@@ -1,6 +1,6 @@
 [package]
 name = "restora"
-version = "1.1.0"
+version = "1.1.1"
 description = "Restora - Minimalist File Recovery Tool"
 authors = ["Restora"]
 license = "MIT"
@@ -21,14 +21,18 @@ uuid = { version = "1", features = ["v4"] }
 chrono = "0.4"
 log = "0.4"
 env_logger = "0.10"
+rayon = "1.8"
+memmap2 = "0.9"
 
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
 
 [profile.release]
-strip = true
-opt-level = "z"
+strip = "symbols"
+opt-level = "s"
 lto = true
 codegen-units = 1
 panic = "abort"
+incremental = false
+split-debuginfo = "off"

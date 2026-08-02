@@ -1344,3 +1344,39 @@ input, select { font-family: inherit; outline: none; }
   color: var(--bg-primary);
   font-weight: 700;
 }
+
+/* ===== PERFORMANCE OPTIMIZATIONS ===== */
+.file-card {
+  contain: layout style;
+  content-visibility: auto;
+  contain-intrinsic-size: 200px 180px;
+}
+
+.drive-card, .category-item, .scan-type-card {
+  contain: layout style;
+}
+
+.results-grid {
+  contain: layout;
+}
+
+.image-thumbnail img {
+  contain: strict;
+}
+
+/* Reduce paint areas */
+.sidebar, .header {
+  contain: layout style;
+}
+
+/* GPU acceleration for animations */
+.file-card, .drive-card, .category-item, .scan-type-card {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Optimize scroll performance */
+.content-area {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
