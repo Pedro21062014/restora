@@ -172,7 +172,8 @@ fn get_free_space(path: &str) -> u64 {
     #[cfg(target_os = "linux")]
     {
         if let Ok(output) = std::process::Command::new("df").args(["-B1", path]).output() {
-            let lines: Vec<&str> = String::from_utf8_lossy(&output.stdout).lines().collect();
+            let stdout_str = String::from_utf8_lossy(&output.stdout);
+            let lines: Vec<&str> = stdout_str.lines().collect();
             if lines.len() > 1 {
                 let parts: Vec<&str> = lines[1].split_whitespace().collect();
                 if parts.len() > 3 { return parts[3].parse().unwrap_or(0); }
