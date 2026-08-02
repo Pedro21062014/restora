@@ -23,6 +23,17 @@
 ## 🚀 Instalação
 
 ### Windows
+
+**⚠️ IMPORTANTE para Windows 7/8/8.1:**
+
+Se aparecer o erro `api-ms-win-crt-math-l1-1-0.dll is missing`, você precisa instalar o **Visual C++ Redistributable**:
+
+1. Baixe: https://aka.ms/vs/17/release/vc_redist.x64.exe (64-bit) ou https://aka.ms/vs/17/release/vc_redist.x86.exe (32-bit)
+2. Execute e instale
+3. Reinicie o computador
+4. Execute o Restora novamente
+
+**Instalação normal:**
 - Baixe o `.exe` (64-bit) ou `.exe` (32-bit) da [página de releases](../../releases)
 - Execute o instalador
 

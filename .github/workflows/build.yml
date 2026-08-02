@@ -24,7 +24,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-pc-windows-gnu
+          targets: x86_64-pc-windows-msvc
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
@@ -38,15 +38,15 @@ jobs:
         run: npm install -g @tauri-apps/cli
 
       - name: Build Tauri App
-        run: npx tauri build --target x86_64-pc-windows-gnu
+        run: npx tauri build --target x86_64-pc-windows-msvc
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-64bit
           path: |
-            src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis/*.exe
-            src-tauri/target/x86_64-pc-windows-gnu/release/bundle/msi/*.msi
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
 
   build-windows-32:
     name: Build Windows 32-bit
@@ -62,7 +62,7 @@ jobs:
       - name: Install Rust stable with 32-bit target
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: i686-pc-windows-gnu
+          targets: i686-pc-windows-msvc
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
@@ -76,15 +76,15 @@ jobs:
         run: npm install -g @tauri-apps/cli
 
       - name: Build Tauri App (32-bit)
-        run: npx tauri build --target i686-pc-windows-gnu
+        run: npx tauri build --target i686-pc-windows-msvc
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-32bit
           path: |
-            src-tauri/target/i686-pc-windows-gnu/release/bundle/nsis/*.exe
-            src-tauri/target/i686-pc-windows-gnu/release/bundle/msi/*.msi
+            src-tauri/target/i686-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/i686-pc-windows-msvc/release/bundle/msi/*.msi
 
   build-ubuntu:
     name: Build Ubuntu (deb & AppImage)
