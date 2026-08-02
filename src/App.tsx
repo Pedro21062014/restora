@@ -12,8 +12,13 @@ import {
   DiscIcon,
   MoonIcon,
   SunIcon,
+  ImageIcon,
+  VideoIcon,
+  MusicIcon,
+  FileTextIcon,
+  ArchiveIcon,
+  FileIcon,
 } from "./icons";
-import FileThumbnail from "./components/FileThumbnail";
 
 interface DriveInfo {
   name: string;
@@ -135,12 +140,12 @@ function App() {
       setCategories(cats);
     } catch (e) {
       setCategories([
-        { id: "all", name: "Todos os Arquivos", icon: "📁", extensions: ["*"] },
+        { id: "all", name: "Todos os Arquivos", icon: "", extensions: ["*"] },
         { id: "images", name: "Imagens", icon: "🖼️", extensions: ["jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "cr2", "heic"] },
-        { id: "videos", name: "Vídeos", icon: "🎬", extensions: ["mp4", "avi", "mkv", "mov", "flv", "wmv", "webm"] },
-        { id: "audio", name: "Áudios", icon: "", extensions: ["mp3", "wav", "flac", "ogg", "aac", "m4a", "wma"] },
-        { id: "documents", name: "Documentos", icon: "", extensions: ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "rtf"] },
-        { id: "archives", name: "Arquivos Compactados", icon: "", extensions: ["zip", "rar", "7z", "tar", "gz"] },
+        { id: "videos", name: "Vídeos", icon: "", extensions: ["mp4", "avi", "mkv", "mov", "flv", "wmv", "webm"] },
+        { id: "audio", name: "Áudios", icon: "🎵", extensions: ["mp3", "wav", "flac", "ogg", "aac", "m4a", "wma"] },
+        { id: "documents", name: "Documentos", icon: "📄", extensions: ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "rtf"] },
+        { id: "archives", name: "Arquivos", icon: "", extensions: ["zip", "rar", "7z", "tar", "gz"] },
       ]);
     }
   };
@@ -150,7 +155,7 @@ function App() {
       const selected = await open({
         directory: true,
         multiple: false,
-        title: "Selecionar pasta de destino para arquivos recuperados",
+        title: "Selecionar pasta de destino",
       });
       if (selected) setDestination(selected as string);
     } catch (e) {
@@ -173,8 +178,8 @@ function App() {
   };
 
   const startScan = async () => {
-    if (!selectedDrive) { showToast("️ Selecione um disco para escanear", "error"); return; }
-    if (!destination) { showToast("⚠️ Selecione uma pasta de destino", "error"); return; }
+    if (!selectedDrive) { showToast("Selecione um disco", "error"); return; }
+    if (!destination) { showToast("Selecione um destino", "error"); return; }
 
     const config: ScanConfig = {
       drive_path: selectedDrive.path,
@@ -211,12 +216,12 @@ function App() {
       setIsScanning(false);
       setTimeout(() => {
         setView("results");
-        showToast(`✅ ${scanResults.length} arquivos encontrados!`, "success");
+        showToast(`${scanResults.length} arquivos encontrados`, "success");
       }, 1000);
     } catch (e) {
       clearInterval(progressInterval);
       setIsScanning(false);
-      showToast(` Erro no scan: ${e}`, "error");
+      showToast(`Erro: ${e}`, "error");
     }
   };
 
@@ -231,16 +236,16 @@ function App() {
   };
 
   const recoverSelected = async () => {
-    if (selectedFiles.size === 0) { showToast("⚠️ Selecione arquivos para recuperar", "error"); return; }
+    if (selectedFiles.size === 0) { showToast("Selecione arquivos", "error"); return; }
     try {
       const recovered = await invoke<RecoveredFile[]>("recover_selected", { fileIds: Array.from(selectedFiles) });
       setResults(prev => prev.map(f => {
         const rec = recovered.find(r => r.id === f.id);
         return rec || f;
       }));
-      showToast(`✅ ${recovered.length} arquivos recuperados!`, "success");
+      showToast(`${recovered.length} arquivos recuperados`, "success");
     } catch (e) {
-      showToast(`❌ Erro na recuperação: ${e}`, "error");
+      showToast(`Erro: ${e}`, "error");
     }
   };
 
@@ -248,9 +253,9 @@ function App() {
     try {
       const recovered = await invoke<RecoveredFile[]>("recover_all");
       setResults(recovered);
-      showToast(`✅ ${recovered.length} arquivos recuperados!`, "success");
+      showToast(`${recovered.length} arquivos recuperados`, "success");
     } catch (e) {
-      showToast(`❌ Erro na recuperação: ${e}`, "error");
+      showToast(`Erro: ${e}`, "error");
     }
   };
 
@@ -273,17 +278,27 @@ function App() {
 
   const getDriveIcon = (type: string) => {
     switch (type) {
-      case "local": return <HardDriveIcon size={24} color="var(--accent)" />;
-      case "usb": return <UsbIcon size={24} color="var(--accent)" />;
-      case "network": return <NetworkIcon size={24} color="var(--accent)" />;
-      case "removable": return <DiscIcon size={24} color="var(--accent)" />;
-      case "home": return <HomeIcon size={24} color="var(--accent)" />;
-      case "partition": return <HardDriveIcon size={24} color="var(--accent)" />;
-      case "disk": return <HardDriveIcon size={24} color="var(--accent)" />;
-      default: return <HardDriveIcon size={24} color="var(--accent)" />;
+      case "local": return <HardDriveIcon size={20} />;
+      case "usb": return <UsbIcon size={20} />;
+      case "network": return <NetworkIcon size={20} />;
+      case "removable": return <DiscIcon size={20} />;
+      case "home": return <HomeIcon size={20} />;
+      case "partition": return <HardDriveIcon size={20} />;
+      case "disk": return <HardDriveIcon size={20} />;
+      default: return <HardDriveIcon size={20} />;
     }
   };
 
+  const getFileIcon = (category: string, size = 24) => {
+    switch (category) {
+      case "images": return <ImageIcon size={size} />;
+      case "videos": return <VideoIcon size={size} />;
+      case "audio": return <MusicIcon size={size} />;
+      case "documents": return <FileTextIcon size={size} />;
+      case "archives": return <ArchiveIcon size={size} />;
+      default: return <FileIcon size={size} />;
+    }
+  };
 
   const ToggleOption = ({ label, desc, value, onChange }: {
     label: string; desc: string; value: boolean; onChange: (v: boolean) => void;
@@ -303,11 +318,11 @@ function App() {
         <div className="splash-content">
           <img src="/logo.png" alt="Restora" className="splash-logo" />
           <h1 className="splash-title">Restora</h1>
-          <p className="splash-subtitle">File Recovery Tool</p>
+          <p className="splash-subtitle">File Recovery</p>
           <div className="splash-loader">
             <div className="splash-loader-bar" />
           </div>
-          <p className="splash-version">v1.0.2</p>
+          <p className="splash-version">v1.1.0</p>
         </div>
       </div>
     );
@@ -315,22 +330,20 @@ function App() {
 
   const renderHome = () => (
     <div className="content-area">
+      {/* DISK SELECTION */}
       <div className="section">
         <div className="section-header">
-          <h2 className="section-title">
-            <span className="section-icon">💽</span>
-            Selecione o Disco
-          </h2>
-          <span className="section-badge">{drives.length} discos encontrados</span>
+          <h2 className="section-title">Selecione o Disco</h2>
+          <span className="section-badge">{drives.length} discos</span>
         </div>
 
         {drives.length === 0 ? (
           <div className="empty-state">
-            <div className="icon">🔍</div>
+            <div className="icon"></div>
             <h3>Nenhum disco encontrado</h3>
-            <p>Conecte um disco ou unidade e tente novamente.</p>
+            <p>Conecte um disco e tente novamente</p>
             <button className="btn btn-secondary" onClick={loadDrives} style={{ marginTop: 16 }}>
-               Tentar novamente
+              Tentar novamente
             </button>
           </div>
         ) : (
@@ -349,7 +362,7 @@ function App() {
                 >
                   <div className="drive-header">
                     <div className="drive-icon-wrapper">
-                      <span className="drive-icon">{getDriveIcon(drive.drive_type)}</span>
+                      {getDriveIcon(drive.drive_type)}
                     </div>
                     {isSelected && <div className="drive-check">✓</div>}
                   </div>
@@ -374,9 +387,7 @@ function App() {
                       <div className={`drive-progress-bar ${isSelected ? "active" : ""}`} style={{ width: `${usedPercent}%` }} />
                     </div>
                     <div className="storage-detail">
-                      <span style={{ color: "var(--text-muted)", fontSize: 11 }}>
-                        Livre: {formatBytes(drive.free_space)} de {formatBytes(drive.total_size)}
-                      </span>
+                      <span>Livre: {formatBytes(drive.free_space)} de {formatBytes(drive.total_size)}</span>
                     </div>
                   </div>
                 </div>
@@ -386,12 +397,10 @@ function App() {
         )}
       </div>
 
+      {/* FILE TYPE */}
       <div className="section">
         <div className="section-header">
-          <h2 className="section-title">
-            <span className="section-icon">📂</span>
-            Tipo de Arquivo
-          </h2>
+          <h2 className="section-title">Tipo de Arquivo</h2>
           {selectedCategories.length > 0 && (
             <span className="section-badge">{selectedCategories.length} selecionados</span>
           )}
@@ -417,52 +426,49 @@ function App() {
         </div>
       </div>
 
+      {/* SCAN TYPE */}
       <div className="section">
-        <h2 className="section-title">
-          <span className="section-icon"></span>
-          Modo de Varredura
-        </h2>
+        <h2 className="section-title">Modo de Varredura</h2>
         <div className="scan-type-grid">
           <div className={`scan-type-card ${scanType === "fast" ? "selected" : ""}`} onClick={() => setScanType("fast")}>
-            <div className="scan-type-icon"></div>
+            <div className="scan-type-icon">⚡</div>
             <div className="scan-type-name">Rápido</div>
-            <div className="scan-type-desc">Analisa a estrutura de arquivos existente. Rápido e eficiente.</div>
+            <div className="scan-type-desc">Analisa a estrutura de arquivos existente</div>
             <div className="scan-type-time">~2-5 minutos</div>
           </div>
           <div className={`scan-type-card ${scanType === "deep" ? "selected" : ""}`} onClick={() => setScanType("deep")}>
             <div className="scan-type-icon">🔍</div>
             <div className="scan-type-name">Profundo</div>
-            <div className="scan-type-desc">Lê setor por setor buscando assinaturas de arquivos.</div>
+            <div className="scan-type-desc">Lê setor por setor buscando assinaturas</div>
             <div className="scan-type-time">~15-60 minutos</div>
           </div>
         </div>
       </div>
 
+      {/* DESTINATION */}
       <div className="section">
-        <h2 className="section-title">
-          <span className="section-icon"></span>
-          Pasta de Destino
-        </h2>
+        <h2 className="section-title">Pasta de Destino</h2>
         <div className="folder-input">
           <div className={`folder-input-display ${destination ? "filled" : ""}`}>
             {destination ? (
               <>
-                <span className="folder-icon">📂</span>
+                <span className="folder-icon"></span>
                 <span className="folder-path">{destination}</span>
               </>
             ) : (
               <span className="folder-placeholder">Nenhuma pasta selecionada...</span>
             )}
           </div>
-          <button className="btn btn-secondary" onClick={selectDestination}>📂 Escolher</button>
+          <button className="btn btn-secondary" onClick={selectDestination}>Escolher</button>
         </div>
         {destination && (
           <div className="destination-info">
-            <span>📍 Arquivos recuperados serão salvos em: <strong>{destination}</strong></span>
+            Arquivos recuperados serão salvos em: <strong>{destination}</strong>
           </div>
         )}
       </div>
 
+      {/* ADVANCED */}
       <div className="section">
         <button className="btn btn-secondary advanced-toggle" onClick={() => setShowAdvanced(!showAdvanced)}>
           <span className={`advanced-arrow ${showAdvanced ? "open" : ""}`}>▶</span>
@@ -470,12 +476,12 @@ function App() {
         </button>
         {showAdvanced && (
           <div className="card advanced-card">
-            <ToggleOption label=" Filtrar Thumbnails" desc="Não salvar imagens de preview e thumbnails pequenas" value={filterThumbnails} onChange={setFilterThumbnails} />
-            <ToggleOption label=" Reparar Arquivos Danificados" desc="Tentar reparar automaticamente arquivos corrompidos" value={repairDamaged} onChange={setRepairDamaged} />
-            <ToggleOption label=" Pular Duplicatas" desc="Não recuperar arquivos já existentes no destino" value={skipDuplicates} onChange={setSkipDuplicates} />
-            <ToggleOption label="📂 Preservar Estrutura de Pastas" desc="Manter a estrutura de diretórios original" value={preserveStructure} onChange={setPreserveStructure} />
-            <ToggleOption label="🚀 Auto-Recuperar" desc="Recuperar automaticamente ao encontrar arquivos" value={autoRecover} onChange={setAutoRecover} />
-            <ToggleOption label="📊 Recuperar Metadados (EXIF, datas)" desc="Preservar data, hora e informações EXIF dos arquivos" value={recoverMetadata} onChange={setRecoverMetadata} />
+            <ToggleOption label="Filtrar Thumbnails" desc="Não salvar imagens de preview" value={filterThumbnails} onChange={setFilterThumbnails} />
+            <ToggleOption label="Reparar Arquivos Danificados" desc="Reparar automaticamente arquivos corrompidos" value={repairDamaged} onChange={setRepairDamaged} />
+            <ToggleOption label="Pular Duplicatas" desc="Não recuperar arquivos duplicados" value={skipDuplicates} onChange={setSkipDuplicates} />
+            <ToggleOption label="Preservar Estrutura" desc="Manter estrutura de pastas original" value={preserveStructure} onChange={setPreserveStructure} />
+            <ToggleOption label="Auto-Recuperar" desc="Recuperar automaticamente ao encontrar" value={autoRecover} onChange={setAutoRecover} />
+            <ToggleOption label="Recuperar Metadados" desc="Preservar EXIF e datas" value={recoverMetadata} onChange={setRecoverMetadata} />
             <div className="scan-config">
               <div className="form-group">
                 <label className="form-label">Tamanho Mínimo (bytes)</label>
@@ -490,16 +496,17 @@ function App() {
         )}
       </div>
 
+      {/* START SCAN */}
       <div className="start-scan-section">
         <button
           className="btn btn-primary btn-lg start-scan-btn"
           onClick={startScan}
           disabled={!selectedDrive || !destination || isScanning}
         >
-          {isScanning ? (<><div className="spinner" /> Escaneando...</>) : (<>🔍 Iniciar Recuperação</>)}
+          {isScanning ? (<><div className="spinner" /> Escaneando...</>) : (<>Iniciar Recuperação</>)}
         </button>
-        {!selectedDrive && <p className="hint-text">️ Selecione um disco acima para começar</p>}
-        {selectedDrive && !destination && <p className="hint-text">📂 Selecione uma pasta de destino para começar</p>}
+        {!selectedDrive && <p className="hint-text">Selecione um disco acima</p>}
+        {selectedDrive && !destination && <p className="hint-text">Selecione uma pasta de destino</p>}
       </div>
     </div>
   );
@@ -509,8 +516,8 @@ function App() {
       <div className="scan-progress-card">
         <div className="scan-progress-header">
           <div>
-            <h3>{isScanning ? "🔍 Escaneando..." : "✅ Varredura Completa"}</h3>
-            <p className="scan-drive-name">Disco: {selectedDrive?.name} ({selectedDrive?.path})</p>
+            <h3>{isScanning ? "Escaneando..." : "Varredura Completa"}</h3>
+            <p className="scan-drive-name">{selectedDrive?.name} ({selectedDrive?.path})</p>
           </div>
           <div className="scan-progress-percent">{Math.round(scanProgress)}%</div>
         </div>
@@ -541,13 +548,13 @@ function App() {
         <div className="scanning-indicator">
           <div className="spinner" />
           <p>Analisando {selectedDrive?.path}...</p>
-          <button className="btn btn-danger" onClick={stopScan}>⏹ Parar Scan</button>
+          <button className="btn btn-danger" onClick={stopScan}>Parar Scan</button>
         </div>
       )}
 
       {!isScanning && results.length > 0 && (
         <div className="scan-complete-actions">
-          <button className="btn btn-primary btn-lg" onClick={() => setView("results")}>📋 Ver Resultados →</button>
+          <button className="btn btn-primary btn-lg" onClick={() => setView("results")}>Ver Resultados →</button>
         </div>
       )}
     </div>
@@ -558,18 +565,18 @@ function App() {
       <div className="results-toolbar">
         <div>
           <h2 className="section-title" style={{ margin: 0 }}>
-             Arquivos Encontrados
+            Arquivos Encontrados
             <span className="badge">{results.length}</span>
           </h2>
         </div>
         <div className="results-actions">
           <button className="btn btn-sm btn-secondary" onClick={selectAllFiles}>
-            {selectedFiles.size === results.length ? "☐ Desmarcar" : "☑ Selecionar Tudo"}
+            {selectedFiles.size === results.length ? "Desmarcar" : "Selecionar Tudo"}
           </button>
           <button className="btn btn-sm btn-primary" onClick={recoverSelected} disabled={selectedFiles.size === 0}>
-             Recuperar ({selectedFiles.size})
+            Recuperar ({selectedFiles.size})
           </button>
-          <button className="btn btn-sm btn-primary" onClick={recoverAll}> Recuperar Tudo</button>
+          <button className="btn btn-sm btn-primary" onClick={recoverAll}>Recuperar Tudo</button>
         </div>
       </div>
 
@@ -577,8 +584,8 @@ function App() {
         <div className="empty-state">
           <div className="icon"></div>
           <h3>Nenhum arquivo encontrado</h3>
-          <p>Tente um scan profundo para encontrar mais arquivos.</p>
-          <button className="btn btn-primary" onClick={() => setView("home")} style={{ marginTop: 16 }}>Voltar ao Início</button>
+          <p>Tente um scan profundo</p>
+          <button className="btn btn-primary" onClick={() => setView("home")} style={{ marginTop: 16 }}>Voltar</button>
         </div>
       ) : (
         <div className="results-grid">
@@ -587,7 +594,7 @@ function App() {
               <div className="file-checkbox">
                 <div className={`checkbox ${selectedFiles.has(file.id) ? "checked" : ""}`} />
               </div>
-              <FileThumbnail file={file} />
+              <FileThumbnail file={file} getFileIcon={getFileIcon} />
               <div className="file-info">
                 <div className="file-name" title={file.original_name}>{file.original_name}</div>
                 <div className="file-meta">
@@ -611,53 +618,46 @@ function App() {
   const renderSettings = () => (
     <div className="content-area">
       <div className="section">
-        <h2 className="section-title">
-          <span className="section-icon">⚙️</span>
-          Configurações
-        </h2>
+        <h2 className="section-title">Configurações</h2>
         <div className="card">
           <div className="toggle-group">
             <div className="toggle-info">
-              <span className="toggle-label"> Tema</span>
+              <span className="toggle-label">Tema</span>
               <span className="toggle-desc">Alterar entre tema escuro e claro</span>
             </div>
             <div className="theme-toggle-btns">
               <button className={`theme-btn ${theme === "dark" ? "active" : ""}`} onClick={() => setTheme("dark")}>
-                 Escuro
+                Escuro
               </button>
               <button className={`theme-btn ${theme === "light" ? "active" : ""}`} onClick={() => setTheme("light")}>
-                 Claro
+                Claro
               </button>
             </div>
           </div>
-          <ToggleOption label="🔔 Notificações" desc="Receber notificações ao completar operações" value={true} onChange={() => {}} />
-          <ToggleOption label="💾 Salvar Configurações" desc="Lembrar configurações entre sessões" value={true} onChange={() => {}} />
-          <ToggleOption label="🔍 Preview de Arquivos" desc="Mostrar miniatura dos arquivos encontrados" value={true} onChange={() => {}} />
-          <ToggleOption label="⚡ Modo Leve" desc="Reduzir uso de memória (ideal para PCs antigos)" value={true} onChange={() => {}} />
-          <ToggleOption label="🔄 Verificar Integridade" desc="Verificar hash dos arquivos após recuperação" value={true} onChange={() => {}} />
+          <ToggleOption label="Notificações" desc="Notificações ao completar operações" value={true} onChange={() => {}} />
+          <ToggleOption label="Salvar Configurações" desc="Lembrar configurações entre sessões" value={true} onChange={() => {}} />
+          <ToggleOption label="Preview de Arquivos" desc="Mostrar miniatura dos arquivos" value={true} onChange={() => {}} />
+          <ToggleOption label="Modo Leve" desc="Reduzir uso de memória" value={true} onChange={() => {}} />
+          <ToggleOption label="Verificar Integridade" desc="Verificar hash após recuperação" value={true} onChange={() => {}} />
         </div>
       </div>
       <div className="section">
-        <h2 className="section-title">
-          <span className="section-icon">ℹ️</span>
-          Sobre o Restora
-        </h2>
+        <h2 className="section-title">Sobre</h2>
         <div className="card about-card">
           <div className="about-logo">
             <img src="/logo.png" alt="Restora" className="about-logo-img" />
           </div>
           <div className="about-info">
             <h3 className="about-title">Restora</h3>
-            <p className="about-version">Versão 1.0.2</p>
+            <p className="about-version">Versão 1.1.0</p>
             <p className="about-desc">
               Ferramenta de recuperação de arquivos leve e minimalista.
-              Encontra e restaura arquivos deletados de qualquer disco ou unidade de armazenamento.
             </p>
             <div className="about-features">
-              <span>⚡ Rápido</span>
-              <span>🖥️ 2GB RAM</span>
-              <span>🔧 Reparo</span>
-              <span>📱 32-bit</span>
+              <span>Rápido</span>
+              <span>2GB RAM</span>
+              <span>Reparo</span>
+              <span>32-bit</span>
             </div>
           </div>
         </div>
@@ -672,26 +672,26 @@ function App() {
           <img src="/logo.png" alt="Restora" className="logo-img" />
           <div className="logo-text">
             <h1>Restora</h1>
-            <span>v1.0.2 • File Recovery</span>
+            <span>v1.1.0</span>
           </div>
         </div>
         <div className="sidebar-nav">
           <button className={`nav-item ${view === "home" ? "active" : ""}`} onClick={() => setView("home")}>
-            <HomeIcon size={18} className="nav-icon" />
-            <span className="nav-label">Início</span>
+            <HomeIcon size={18} />
+            <span>Início</span>
           </button>
           <button className={`nav-item ${view === "scan" ? "active" : ""}`} onClick={() => setView("scan")}>
-            <SearchIcon size={18} className="nav-icon" />
-            <span className="nav-label">Escanear</span>
+            <SearchIcon size={18} />
+            <span>Escanear</span>
           </button>
           <button className={`nav-item ${view === "results" ? "active" : ""}`} onClick={() => setView("results")}>
-            <ListIcon size={18} className="nav-icon" />
-            <span className="nav-label">Resultados</span>
+            <ListIcon size={18} />
+            <span>Resultados</span>
             {results.length > 0 && <span className="nav-badge">{results.length}</span>}
           </button>
           <button className={`nav-item ${view === "settings" ? "active" : ""}`} onClick={() => setView("settings")}>
-            <SettingsIcon size={18} className="nav-icon" />
-            <span className="nav-label">Configurações</span>
+            <SettingsIcon size={18} />
+            <span>Configurações</span>
           </button>
         </div>
         <div className="sidebar-footer">
@@ -702,28 +702,27 @@ function App() {
             </div>
           )}
           <div className="theme-toggle-sidebar" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-            {theme === "dark" ? <MoonIcon size={14} className="theme-icon" /> : <SunIcon size={14} className="theme-icon" />}
-            <span>Tema {theme === "dark" ? "Escuro" : "Claro"}</span>
+            {theme === "dark" ? <MoonIcon size={14} /> : <SunIcon size={14} />}
+            <span>{theme === "dark" ? "Escuro" : "Claro"}</span>
           </div>
-          <p>Restora © 2026 • v1.0.2</p>
-          <p>Leve & Rápido • 2GB RAM </p>
+          <p>Restora © 2026</p>
         </div>
       </div>
 
       <div className="main-content">
         <div className="header">
           <span className="header-title">
-            {view === "home" && "🏠 Recuperação de Arquivos"}
-            {view === "scan" && "🔍 Escaneamento em Andamento"}
-            {view === "results" && "📋 Resultados da Varredura"}
-            {view === "settings" && "⚙️ Configurações"}
+            {view === "home" && "Recuperação de Arquivos"}
+            {view === "scan" && "Escaneamento"}
+            {view === "results" && "Resultados"}
+            {view === "settings" && "Configurações"}
           </span>
           <div className="header-actions">
             {view === "home" && selectedDrive && (
-              <span className="header-drive">💽 {selectedDrive.name}</span>
+              <span className="header-drive">{selectedDrive.name}</span>
             )}
             {view === "results" && (
-              <button className="btn btn-sm btn-secondary" onClick={() => setView("home")}>← Novo Scan</button>
+              <button className="btn btn-sm btn-secondary" onClick={() => setView("home")}>Novo Scan</button>
             )}
           </div>
         </div>
@@ -742,5 +741,73 @@ function App() {
     </div>
   );
 }
+
+interface FileThumbnailProps {
+  file: {
+    id: string;
+    original_name: string;
+    file_type: string;
+    category: string;
+    path: string;
+    recovered_path: string;
+    status: string;
+  };
+  getFileIcon: (category: string, size?: number) => React.ReactNode;
+}
+
+const FileThumbnail: React.FC<FileThumbnailProps> = ({ file, getFileIcon }) => {
+  const [imgError, setImgError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "heic"];
+  const isImage = imageExtensions.includes(file.file_type.toLowerCase());
+  const isRecovered = file.status.includes("recovered") || file.status.includes("repaired");
+  const thumbnailPath = file.recovered_path || file.path;
+  const shouldShowImage = isImage && thumbnailPath && !imgError;
+
+  const getImageSrc = () => {
+    try {
+      const { convertFileSrc } = require("@tauri-apps/api/tauri");
+      return convertFileSrc(thumbnailPath);
+    } catch (e) {
+      console.error("Failed to convert file path:", e);
+      return "";
+    }
+  };
+
+  if (shouldShowImage) {
+    return (
+      <div className="file-thumbnail image-thumbnail">
+        {isLoading && (
+          <div className="thumbnail-loader">
+            <div className="spinner" />
+          </div>
+        )}
+        <img
+          src={getImageSrc()}
+          alt={file.original_name}
+          className="thumbnail-image"
+          style={{ display: isLoading ? "none" : "block" }}
+          onLoad={() => setIsLoading(false)}
+          onError={() => {
+            setImgError(true);
+            setIsLoading(false);
+          }}
+        />
+        {imgError && (
+          <div className="thumbnail-fallback">
+            {getFileIcon(file.category, 32)}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="file-thumbnail">
+      {getFileIcon(file.category, 32)}
+    </div>
+  );
+};
 
 export default App;

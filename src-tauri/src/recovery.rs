@@ -50,7 +50,6 @@ pub fn get_signatures() -> Vec<FileSignature> {
         FileSignature { name: "XLSX", extensions: &["xlsx"], category: "documents", magic: &[0x50, 0x4B, 0x03, 0x04], offset: 0, max_size: 200_000_000, footer: None },
         FileSignature { name: "PPTX", extensions: &["pptx"], category: "documents", magic: &[0x50, 0x4B, 0x03, 0x04], offset: 0, max_size: 200_000_000, footer: None },
         FileSignature { name: "RTF", extensions: &["rtf"], category: "documents", magic: b"{\\rtf", offset: 0, max_size: 100_000_000, footer: None },
-        FileSignature { name: "TXT", extensions: &["txt"], category: "documents", magic: b"", offset: 0, max_size: 10_000_000, footer: None },
         // Archives
         FileSignature { name: "ZIP", extensions: &["zip"], category: "archives", magic: &[0x50, 0x4B, 0x03, 0x04], offset: 0, max_size: 4_000_000_000, footer: None },
         FileSignature { name: "RAR", extensions: &["rar"], category: "archives", magic: b"Rar!", offset: 0, max_size: 4_000_000_000, footer: None },
@@ -89,7 +88,7 @@ pub struct RecoveredFile {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanConfig {
     pub drive_path: String,
-    pub scan_type: String, // "fast" or "deep"
+    pub scan_type: String,
     pub categories: Vec<String>,
     pub destination: String,
     pub filter_thumbnails: bool,
@@ -115,15 +114,6 @@ pub struct ScanProgress {
     pub estimated_remaining: u64,
     pub scan_speed_mbps: f32,
     pub status: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ScanResult {
-    pub success: bool,
-    pub files_found: Vec<RecoveredFile>,
-    pub message: String,
-    pub total_recovered: u64,
-    pub total_size: u64,
 }
 
 pub fn get_drives() -> Vec<DriveInfo> {
@@ -255,14 +245,75 @@ fn get_total_space(_path: &str) -> u64 {
     0
 }
 
-/// Fast scan: walks the filesystem looking for deleted file traces
+/// Directories where deleted files typically reside
+fn get_recovery_directories(base: &str) -> Vec<String> {
+    let mut dirs = Vec::new();
+
+    // Trash/Recycle Bin directories
+    let trash_dirs = [
+        ".Trash", ".Trash-1000", ".local/share/Trash/files",
+        "$Recycle.Bin", "RECYCLER",
+        ".cache/thumbnails", ".thumbnails",
+        "System Volume Information",
+        ".Spotlight-V100", ".TemporaryItems",
+    ];
+
+    for dir in &trash_dirs {
+        let full_path = format!("{}/{}", base, dir);
+        if Path::new(&full_path).exists() {
+            dirs.push(full_path);
+        }
+    }
+
+    // On Windows, also check Recycle Bin root
+    #[cfg(target_os = "windows")]
+    {
+        let recycle_path = format!("{}\\$Recycle.Bin", base);
+        if Path::new(&recycle_path).exists() {
+            if let Ok(entries) = fs::read_dir(&recycle_path) {
+                for entry in entries.flatten() {
+                    if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+                        dirs.push(entry.path().to_string_lossy().to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    dirs
+}
+
+/// Known directories where ACTIVE (non-deleted) files live
+/// Files found here should be EXCLUDED from recovery results
+fn is_active_file_location(path: &str) -> bool {
+    let path_lower = path.to_lowercase();
+    
+    let active_patterns = [
+        "/documents/", "/downloads/", "/pictures/", "/videos/", "/music/",
+        "/desktop/", "/public/", "/templates/",
+        "\\documents\\", "\\downloads\\", "\\pictures\\", "\\videos\\", "\\music\\",
+        "\\desktop\\", "\\public\\", "\\templates\\",
+        "/appdata/roaming/", "\\appdata\\roaming\\",
+        "/usr/share/", "/etc/", "/var/",
+    ];
+
+    for pattern in &active_patterns {
+        if path_lower.contains(pattern) {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Fast scan: looks in trash/recycle bin and cache directories for recoverable files
 pub fn fast_scan(config: &ScanConfig) -> Vec<RecoveredFile> {
     let mut files = Vec::new();
     let signatures = get_signatures();
     let scan_path = &config.drive_path;
 
-    // For fast scan, look in common locations for recoverable files
-    let search_dirs = get_search_directories(scan_path);
+    // For fast scan, only look in trash/recovery directories
+    let search_dirs = get_recovery_directories(scan_path);
 
     for dir in search_dirs {
         if !Path::new(&dir).exists() {
@@ -324,17 +375,25 @@ pub fn fast_scan(config: &ScanConfig) -> Vec<RecoveredFile> {
         }
     }
 
+    // If no trash dirs found, do a deep scan but EXCLUDE active file locations
+    if files.is_empty() {
+        return deep_scan_with_exclusion(config);
+    }
+
     files
 }
 
-/// Deep scan: reads raw data looking for file signatures
+/// Deep scan with exclusion of active file locations
 pub fn deep_scan(config: &ScanConfig) -> Vec<RecoveredFile> {
+    deep_scan_with_exclusion(config)
+}
+
+fn deep_scan_with_exclusion(config: &ScanConfig) -> Vec<RecoveredFile> {
     let mut files = Vec::new();
     let signatures = get_signatures();
     let scan_path = &config.drive_path;
 
-    // For deep scan, we search through the directory tree reading file headers
-    let search_dirs = get_search_directories(scan_path);
+    let search_dirs = vec![scan_path.to_string()];
 
     for dir in search_dirs {
         if !Path::new(&dir).exists() {
@@ -352,6 +411,12 @@ pub fn deep_scan(config: &ScanConfig) -> Vec<RecoveredFile> {
             }
 
             let path = entry.path().to_string_lossy().to_string();
+            
+            // SKIP files in active locations (Documents, Downloads, etc.)
+            if is_active_file_location(&path) {
+                continue;
+            }
+
             let metadata = match entry.metadata() {
                 Ok(m) => m,
                 Err(_) => continue,
@@ -362,7 +427,6 @@ pub fn deep_scan(config: &ScanConfig) -> Vec<RecoveredFile> {
                 continue;
             }
 
-            // Read the first bytes to check signature
             if let Ok(mut file) = fs::File::open(entry.path()) {
                 let mut header = [0u8; 512];
                 let bytes_read = file.read(&mut header).unwrap_or(0);
@@ -393,7 +457,6 @@ pub fn deep_scan(config: &ScanConfig) -> Vec<RecoveredFile> {
                             continue;
                         }
 
-                        // Check if file is potentially damaged
                         let is_damaged = check_file_integrity(&mut file, sig, size);
 
                         let ext = sig.extensions.first().unwrap_or(&"unknown").to_string();
@@ -414,7 +477,7 @@ pub fn deep_scan(config: &ScanConfig) -> Vec<RecoveredFile> {
                             found_at: chrono::Utc::now().to_rfc3339(),
                         });
 
-                        break; // Only match first signature
+                        break;
                     }
                 }
             }
@@ -424,7 +487,6 @@ pub fn deep_scan(config: &ScanConfig) -> Vec<RecoveredFile> {
     files
 }
 
-/// Recover files to destination
 pub fn recover_files(
     files_to_recover: &[RecoveredFile],
     config: &ScanConfig,
@@ -432,7 +494,6 @@ pub fn recover_files(
     let mut recovered = Vec::new();
     let dest = PathBuf::from(&config.destination);
 
-    // Create destination directory
     let _ = fs::create_dir_all(&dest);
 
     for file in files_to_recover {
@@ -441,11 +502,9 @@ pub fn recover_files(
             continue;
         }
 
-        // Create category subdirectory
         let category_dir = dest.join(&file.category);
         let _ = fs::create_dir_all(&category_dir);
 
-        // Generate unique filename to avoid conflicts
         let ext = &file.file_type;
         let base_name = Path::new(&file.original_name)
             .file_stem()
@@ -455,7 +514,6 @@ pub fn recover_files(
         let recovered_name = format!("{}_{}.{}", base_name, &file.id[..8], ext);
         let dest_path = category_dir.join(&recovered_name);
 
-        // Copy file
         match fs::copy(&src, &dest_path) {
             Ok(_) => {
                 let mut rec = file.clone();
@@ -468,7 +526,6 @@ pub fn recover_files(
                     "recovered".to_string()
                 };
 
-                // Attempt repair if configured
                 if file.is_damaged && config.repair_damaged {
                     repair_file(&dest_path, &rec);
                 }
@@ -486,51 +543,9 @@ pub fn recover_files(
     recovered
 }
 
-fn get_search_directories(base: &str) -> Vec<String> {
-    let mut dirs = vec![base.to_string()];
-
-    // Add common directories where photos/files are stored
-    let common_dirs = [
-        "DCIM", "Camera", "Photos", "Pictures", "Images",
-        "Documents", "Downloads", "Videos", "Music",
-        "WhatsApp", "Telegram", "Screenshots",
-    ];
-
-    for dir in &common_dirs {
-        let full_path = format!("{}/{}", base, dir);
-        if Path::new(&full_path).exists() {
-            dirs.push(full_path);
-        }
-    }
-
-    // On Linux, also check home directories
-    #[cfg(target_os = "linux")]
-    {
-        let home_dirs = [
-            format!("{}/home", base),
-            format!("{}/root", base),
-        ];
-        for hd in &home_dirs {
-            let hd_path = Path::new(hd);
-            if hd_path.exists() {
-                if let Ok(entries) = fs::read_dir(hd_path) {
-                    for entry in entries.flatten() {
-                        if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
-                            dirs.push(entry.path().to_string_lossy().to_string());
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    dirs
-}
-
 fn is_thumbnail_file(path: &str, size: u64) -> bool {
     let path_lower = path.to_lowercase();
 
-    // Check filename patterns
     let thumb_patterns = [
         "thumb", "thumbnail", ".thumb", "tn_", "_tn",
         "preview", "icon", "cache", ".tmp", "~$",
@@ -542,12 +557,10 @@ fn is_thumbnail_file(path: &str, size: u64) -> bool {
         }
     }
 
-    // Check if file is very small (likely a thumbnail)
     if size < 5_000 && (path_lower.contains(".jpg") || path_lower.contains(".png")) {
         return true;
     }
 
-    // Check for thumbnail directories
     let thumb_dirs = [".thumbnails", "thumbs", "thumbnails", "@__thumb"];
     for dir in &thumb_dirs {
         if path_lower.contains(dir) {
@@ -559,26 +572,24 @@ fn is_thumbnail_file(path: &str, size: u64) -> bool {
 }
 
 fn check_file_integrity(file: &mut fs::File, sig: &FileSignature, _size: u64) -> bool {
-    // Check footer if available
     if let Some(footer) = sig.footer {
         if file.seek(SeekFrom::End(-(footer.len() as i64))).is_ok() {
             let mut end_bytes = vec![0u8; footer.len()];
             if file.read(&mut end_bytes).is_ok() {
                 if end_bytes != footer {
-                    return true; // Missing footer = potentially damaged
+                    return true;
                 }
             }
         }
     }
 
-    // Check for zero-filled sections (data corruption)
     if file.seek(SeekFrom::Start(1024)).is_ok() {
         let mut check_buf = [0u8; 4096];
         if let Ok(n) = file.read(&mut check_buf) {
             if n > 0 {
                 let zero_count = check_buf[..n].iter().filter(|&&b| b == 0).count();
                 if zero_count > n * 90 / 100 {
-                    return true; // Mostly zeros = likely damaged
+                    return true;
                 }
             }
         }
@@ -601,20 +612,16 @@ fn repair_file(path: &PathBuf, file: &RecoveredFile) {
 }
 
 fn repair_jpeg(path: &PathBuf) {
-    // Ensure JPEG has proper SOI and EOI markers
     if let Ok(mut data) = fs::read(path) {
         let mut modified = false;
 
-        // Check SOI marker
         if data.len() >= 2 && data[0] != 0xFF && data[1] != 0xD8 {
-            // Prepend SOI
             let mut new_data = vec![0xFF, 0xD8, 0xFF, 0xE0];
             new_data.extend_from_slice(&data);
             data = new_data;
             modified = true;
         }
 
-        // Check EOI marker
         if data.len() >= 2 {
             let len = data.len();
             if data[len - 2] != 0xFF || data[len - 1] != 0xD9 {
@@ -632,7 +639,6 @@ fn repair_jpeg(path: &PathBuf) {
 
 fn repair_png(path: &PathBuf) {
     if let Ok(mut data) = fs::read(path) {
-        // Check PNG signature
         let png_sig: [u8; 8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
         if data.len() < 8 || data[..8] != png_sig {
             let mut new_data = png_sig.to_vec();
@@ -640,7 +646,6 @@ fn repair_png(path: &PathBuf) {
             data = new_data;
         }
 
-        // Ensure IEND chunk
         let iend: [u8; 12] = [0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82];
         let len = data.len();
         if len < 12 || data[len-12..] != iend {
@@ -652,30 +657,24 @@ fn repair_png(path: &PathBuf) {
 }
 
 fn repair_video(path: &PathBuf) {
-    // Basic video repair: check and fix container headers
     if let Ok(data) = fs::read(path) {
         if data.len() < 12 {
             return;
         }
 
-        // Check for moov atom (MP4/MOV)
         let has_moov = data.windows(4).any(|w| w == b"moov");
         let has_mdat = data.windows(4).any(|w| w == b"mdat");
 
         if !has_moov && has_mdat {
-            // Video might be unplayable without moov atom
-            // Mark as needing external repair tool
             log::warn!("Video file missing moov atom, needs external repair: {:?}", path);
         }
 
-        // Re-write to ensure file integrity
         let _ = fs::write(path, &data);
     }
 }
 
 fn repair_mp3(path: &PathBuf) {
     if let Ok(data) = fs::read(path) {
-        // Check for valid MP3 frame sync
         if data.len() < 3 {
             return;
         }
@@ -684,7 +683,6 @@ fn repair_mp3(path: &PathBuf) {
         let has_id3 = &data[0..3] == b"ID3";
 
         if !has_sync && !has_id3 {
-            // Try to find frame sync in first 4KB
             if let Some(pos) = data[..std::cmp::min(4096, data.len())].windows(2).position(|w| {
                 w[0] == 0xFF && (w[1] & 0xE0) == 0xE0
             }) {
@@ -699,14 +697,12 @@ fn repair_mp3(path: &PathBuf) {
 
 fn repair_pdf(path: &PathBuf) {
     if let Ok(mut data) = fs::read(path) {
-        // Ensure PDF header
         if !data.starts_with(b"%PDF") {
             let mut new_data = b"%PDF-1.4\n".to_vec();
             new_data.extend_from_slice(&data);
             data = new_data;
         }
 
-        // Ensure EOF marker
         let data_str = String::from_utf8_lossy(&data);
         if !data_str.contains("%%EOF") {
             data.extend_from_slice(b"\n%%EOF\n");
