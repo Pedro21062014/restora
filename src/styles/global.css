@@ -745,7 +745,40 @@ input, select { font-family: inherit; outline: none; }
 .file-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
 .file-checkbox { position: absolute; top: 8px; right: 8px; z-index: 2; }
-.file-thumbnail { width: 100%; height: 110px; background: var(--file-thumb-bg); display: flex; align-items: center; justify-content: center; font-size: 36px; }
+.file-thumbnail { width: 100%; height: 110px; background: var(--file-thumb-bg); display: flex; align-items: center; justify-content: center; font-size: 36px; overflow: hidden; position: relative; }
+
+.image-thumbnail {
+  position: relative;
+}
+
+.image-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.thumbnail-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--file-thumb-bg);
+}
+
+.thumbnail-loader .spinner {
+  width: 24px;
+  height: 24px;
+}
+
+.thumbnail-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
 .file-info { padding: 12px; }
 .file-name { font-size: 12px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 6px; }
 .file-meta { display: flex; justify-content: space-between; align-items: center; }

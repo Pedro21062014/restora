@@ -13,6 +13,7 @@ import {
   MoonIcon,
   SunIcon,
 } from "./icons";
+import FileThumbnail from "./components/FileThumbnail";
 
 interface DriveInfo {
   name: string;
@@ -283,13 +284,6 @@ function App() {
     }
   };
 
-  const getFileIcon = (category: string) => {
-    const icons: Record<string, string> = {
-      images: "️", videos: "🎬", audio: "",
-      documents: "📄", archives: "", emails: "📧", databases: "🗄️",
-    };
-    return icons[category] || "📁";
-  };
 
   const ToggleOption = ({ label, desc, value, onChange }: {
     label: string; desc: string; value: boolean; onChange: (v: boolean) => void;
@@ -593,7 +587,7 @@ function App() {
               <div className="file-checkbox">
                 <div className={`checkbox ${selectedFiles.has(file.id) ? "checked" : ""}`} />
               </div>
-              <div className="file-thumbnail">{getFileIcon(file.category)}</div>
+              <FileThumbnail file={file} />
               <div className="file-info">
                 <div className="file-name" title={file.original_name}>{file.original_name}</div>
                 <div className="file-meta">

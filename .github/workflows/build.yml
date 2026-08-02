@@ -184,15 +184,13 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/windows-64bit/*.exe
-            artifacts/windows-64bit/*.msi
-            artifacts/windows-32bit/*.exe
-            artifacts/windows-32bit/*.msi
-            artifacts/ubuntu/*.deb
-            artifacts/ubuntu/*.AppImage
-            artifacts/ubuntu/*.rpm
-            artifacts/macos/*.dmg
-            artifacts/macos/*.tar.gz
+            artifacts/**/*.exe
+            artifacts/**/*.msi
+            artifacts/**/*.deb
+            artifacts/**/*.AppImage
+            artifacts/**/*.rpm
+            artifacts/**/*.dmg
+            artifacts/**/*.tar.gz
           draft: false
           prerelease: false
           generate_release_notes: false
