@@ -24,29 +24,29 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-pc-windows-msvc
+          targets: x86_64-pc-windows-gnu
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
 
-      - name: Install Tauri CLI
-        run: npm install -g @tauri-apps/cli
-
       - name: Install frontend dependencies
         run: npm install
 
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
+
       - name: Build Tauri App
-        run: npx tauri build --target x86_64-pc-windows-msvc
+        run: npx tauri build --target x86_64-pc-windows-gnu
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-64bit
           path: |
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
-            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
+            src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis/*.exe
+            src-tauri/target/x86_64-pc-windows-gnu/release/bundle/msi/*.msi
 
   build-windows-32:
     name: Build Windows 32-bit
@@ -62,29 +62,29 @@ jobs:
       - name: Install Rust stable with 32-bit target
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: i686-pc-windows-msvc
+          targets: i686-pc-windows-gnu
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
 
-      - name: Install Tauri CLI
-        run: npm install -g @tauri-apps/cli
-
       - name: Install frontend dependencies
         run: npm install
 
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
+
       - name: Build Tauri App (32-bit)
-        run: npx tauri build --target i686-pc-windows-msvc
+        run: npx tauri build --target i686-pc-windows-gnu
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-32bit
           path: |
-            src-tauri/target/i686-pc-windows-msvc/release/bundle/nsis/*.exe
-            src-tauri/target/i686-pc-windows-msvc/release/bundle/msi/*.msi
+            src-tauri/target/i686-pc-windows-gnu/release/bundle/nsis/*.exe
+            src-tauri/target/i686-pc-windows-gnu/release/bundle/msi/*.msi
 
   build-ubuntu:
     name: Build Ubuntu (deb & AppImage)
@@ -178,7 +178,7 @@ jobs:
           path: artifacts
 
       - name: List all downloaded files
-        run: find artifacts/ -type f -name "*.exe" -o -name "*.msi" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.tar.gz"
+        run: find artifacts/ -type f
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -198,25 +198,25 @@ jobs:
           body: |
             ## 🔄 Restora ${{ github.ref_name }} - File Recovery Tool
 
-            ###  Downloads
+            ### 📦 Downloads
 
             | Plataforma | Arquivo |
             |------------|---------|
-            | 🖥️ Windows 64-bit | `Restora_*_x64-setup.exe` |
-            | ️ Windows 32-bit (PCs antigos) | `Restora-Setup-*_ia32.exe` |
+            | ️ Windows 64-bit | `Restora_*_x64-setup.exe` |
+            | 🖥️ Windows 32-bit (PCs antigos) | `Restora-Setup-*_ia32.exe` |
             | 🐧 Linux .deb | `restora_*_amd64.deb` |
-            |  Linux AppImage | `restora_*_amd64.AppImage` |
-            |  Linux RPM | `restora-*-1.x86_64.rpm` |
+            | 🐧 Linux AppImage | `restora_*_amd64.AppImage` |
+            | 🐧 Linux RPM | `restora-*-1.x86_64.rpm` |
             | 🍎 macOS DMG | `Restora_*_aarch64.dmg` |
 
             ### ✨ Recursos
             - 🔍 Scan rápido e profundo
             - 🖼️ Recuperação de imagens, vídeos, áudios, documentos
-            -  Reparo automático de arquivos danificados
-            - ️ Filtro de thumbnails
+            - 🔧 Reparo automático de arquivos danificados
+            - 🖼️ Filtro de thumbnails
             - 💻 Funciona com apenas 2GB de RAM
-            - ️ Suporte a 32-bit Windows para PCs antigos
-            -  Tema escuro e claro
+            - 🖥️ Suporte a 32-bit Windows para PCs antigos
+            - 🎨 Tema escuro e claro
             - 📱 Ícones SVG modernos
 
             ### 🚀 Instalação

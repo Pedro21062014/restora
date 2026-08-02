@@ -360,7 +360,7 @@ function App() {
           <h1 className="splash-title">Restora</h1>
           <p className="splash-subtitle">File Recovery</p>
           <div className="splash-loader"><div className="splash-loader-bar" /></div>
-          <p className="splash-version">v1.1.1</p>
+          <p className="splash-version">v1.1.3</p>
         </div>
       </div>
     );
@@ -574,7 +574,7 @@ function App() {
           <div className="about-logo"><img src="/logo.png" alt="Restora" className="about-logo-img" /></div>
           <div className="about-info">
             <h3 className="about-title">Restora</h3>
-            <p className="about-version">Versão 1.1.1</p>
+            <p className="about-version">Versão 1.1.3</p>
             <p className="about-desc">Ferramenta de recuperação de arquivos leve e minimalista.</p>
             <div className="about-features"><span>Rápido</span><span>2GB RAM</span><span>Reparo</span><span>32-bit</span></div>
           </div>
@@ -588,7 +588,7 @@ function App() {
       <div className="sidebar">
         <div className="sidebar-logo">
           <img src="/logo.png" alt="Restora" className="logo-img" />
-          <div className="logo-text"><h1>Restora</h1><span>v1.1.1</span></div>
+          <div className="logo-text"><h1>Restora</h1><span>v1.1.3</span></div>
         </div>
         <div className="sidebar-nav">
           <button className={`nav-item ${view === "home" ? "active" : ""}`} onClick={() => setView("home")}><HomeIcon size={18} /><span>Início</span></button>
@@ -602,7 +602,7 @@ function App() {
             {theme === "dark" ? <MoonIcon size={14} /> : <SunIcon size={14} />}
             <span>{theme === "dark" ? "Escuro" : "Claro"}</span>
           </div>
-          <p>Restora © 2026</p>
+          <p>Restora © 2026 • v1.1.3</p>
         </div>
       </div>
       <div className="main-content">
