@@ -31,19 +31,22 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
+
       - name: Install frontend dependencies
         run: npm install
 
       - name: Build Tauri App
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx tauri build --target x86_64-pc-windows-msvc
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          tagName: v__VERSION__
-          releaseName: 'Restora v__VERSION__'
-          releaseBody: 'Restora - Lightweight File Recovery Tool'
-          releaseDraft: true
-          prerelease: false
+          name: windows-64bit
+          path: |
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
 
   build-windows-32:
     name: Build Windows 32-bit
@@ -66,17 +69,16 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
+
       - name: Install frontend dependencies
         run: npm install
 
       - name: Build Tauri App (32-bit)
-        run: |
-          npm install -g @tauri-apps/cli
-          npx tauri build --target i686-pc-windows-msvc
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx tauri build --target i686-pc-windows-msvc
 
-      - name: Upload 32-bit artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-32bit
@@ -108,19 +110,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
 
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
+
       - name: Install frontend dependencies
         run: npm install
 
       - name: Build Tauri App
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx tauri build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          tagName: v__VERSION__
-          releaseName: 'Restora v__VERSION__'
-          releaseBody: 'Restora - Lightweight File Recovery Tool'
-          releaseDraft: true
-          prerelease: false
+          name: ubuntu
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/appimage/*.AppImage
+            src-tauri/target/release/bundle/rpm/*.rpm
 
   build-macos:
     name: Build macOS (DMG)
@@ -141,22 +147,25 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
+
       - name: Install frontend dependencies
         run: npm install
 
       - name: Build Tauri App
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: v__VERSION__
-          releaseName: 'Restora v__VERSION__'
-          releaseBody: 'Restora - Lightweight File Recovery Tool'
-          releaseDraft: true
-          prerelease: false
+        run: npx tauri build
 
-  publish-release:
-    name: Publish Release
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            src-tauri/target/release/bundle/dmg/*.dmg
+            src-tauri/target/release/bundle/macos/*.app.tar.gz
+
+  create-release:
+    name: Create Release
     needs: [build-windows-64, build-windows-32, build-ubuntu, build-macos]
     runs-on: ubuntu-22.04
     if: startsWith(github.ref, 'refs/tags/')
@@ -168,38 +177,51 @@ jobs:
         with:
           path: artifacts
 
-      - name: Display structure of downloaded files
-        run: ls -R artifacts/
+      - name: List all downloaded files
+        run: find artifacts/ -type f -name "*.exe" -o -name "*.msi" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.tar.gz"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/**/*.exe
-            artifacts/**/*.deb
-            artifacts/**/*.AppImage
-            artifacts/**/*.dmg
-            artifacts/**/*.msi
+            artifacts/windows-64bit/*.exe
+            artifacts/windows-64bit/*.msi
+            artifacts/windows-32bit/*.exe
+            artifacts/windows-32bit/*.msi
+            artifacts/ubuntu/*.deb
+            artifacts/ubuntu/*.AppImage
+            artifacts/ubuntu/*.rpm
+            artifacts/macos/*.dmg
+            artifacts/macos/*.tar.gz
           draft: false
           prerelease: false
-          generate_release_notes: true
-          name: 'Restora v1.0.0 - File Recovery Tool'
+          generate_release_notes: false
+          name: 'Restora ${{ github.ref_name }}'
           body: |
-            ## 🔄 Restora v1.0.0
+            ## 🔄 Restora ${{ github.ref_name }} - File Recovery Tool
 
-            ### Instalação
-            - **Windows 64-bit**: `Restora_1.0.0_x64-setup.exe`
-            - **Windows 32-bit**: `Restora_1.0.0_x86-setup.exe` (PCs antigos)
-            - **Linux (Debian/Ubuntu)**: `restora_1.0.0_amd64.deb`
-            - **Linux (AppImage)**: `Restora_1.0.0_amd64.AppImage`
-            - **macOS**: `Restora_1.0.0_x64.dmg`
+            ###  Downloads
 
-            ### Recursos
+            | Plataforma | Arquivo |
+            |------------|---------|
+            | 🖥️ Windows 64-bit | `Restora_*_x64-setup.exe` |
+            | ️ Windows 32-bit (PCs antigos) | `Restora-Setup-*_ia32.exe` |
+            | 🐧 Linux .deb | `restora_*_amd64.deb` |
+            |  Linux AppImage | `restora_*_amd64.AppImage` |
+            |  Linux RPM | `restora-*-1.x86_64.rpm` |
+            | 🍎 macOS DMG | `Restora_*_aarch64.dmg` |
+
+            ### ✨ Recursos
             - 🔍 Scan rápido e profundo
             - 🖼️ Recuperação de imagens, vídeos, áudios, documentos
-            - 🔧 Reparo automático de arquivos danificados
-            - 🖼️ Filtro de thumbnails
-            - 💻 Funciona com 2GB de RAM
-            - 🖥️ Suporte a 32-bit Windows
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            -  Reparo automático de arquivos danificados
+            - ️ Filtro de thumbnails
+            - 💻 Funciona com apenas 2GB de RAM
+            - ️ Suporte a 32-bit Windows para PCs antigos
+            -  Tema escuro e claro
+            - 📱 Ícones SVG modernos
+
+            ### 🚀 Instalação
+            - **Windows**: Execute o `.exe` correspondente à sua arquitetura
+            - **Linux**: Use o `.deb` (Debian/Ubuntu) ou `.AppImage` (qualquer distro)
+            - **macOS**: Abra o `.dmg` e arraste para Applications
