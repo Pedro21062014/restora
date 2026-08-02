@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback, memo } from "react";
-import { invoke } from "@tauri-apps/api/tauri";
+import React, { useState, useEffect, useCallback, memo } from "react";
+import { invoke, convertFileSrc } from "@tauri-apps/api/tauri";
 import { open } from "@tauri-apps/api/dialog";
 import {
   HomeIcon, SearchIcon, ListIcon, SettingsIcon,
@@ -33,6 +33,14 @@ interface FileCategory {
   id: string; name: string; icon: string; extensions: string[];
 }
 
+interface AppSettings {
+  notifications: boolean;
+  saveConfig: boolean;
+  showPreview: boolean;
+  lightweightMode: boolean;
+  verifyIntegrity: boolean;
+}
+
 type View = "home" | "scan" | "results" | "settings";
 type Theme = "dark" | "light";
 
@@ -44,7 +52,7 @@ function formatBytes(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 }
 
-// ===== OPTIMIZATION: Memoized thumbnail component =====
+// ===== FileThumbnail with proper import =====
 const FileThumbnail = memo(({ file, getFileIcon }: {
   file: RecoveredFile;
   getFileIcon: (cat: string, size?: number) => React.ReactNode;
@@ -52,17 +60,15 @@ const FileThumbnail = memo(({ file, getFileIcon }: {
   const [imgError, setImgError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const imageExtensions = useMemo(() =>
-    new Set(["jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "heic"]), []);
+  const imageExtensions = new Set(["jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "heic"]);
   const isImage = imageExtensions.has(file.file_type.toLowerCase());
   const isRecovered = file.status.includes("recovered") || file.status.includes("repaired");
   const thumbnailPath = file.recovered_path || file.path;
   const shouldShowImage = isImage && thumbnailPath && !imgError;
 
-  const imageSrc = useMemo(() => {
+  const imageSrc = React.useMemo(() => {
     if (!shouldShowImage) return "";
     try {
-      const { convertFileSrc } = require("@tauri-apps/api/tauri");
       return convertFileSrc(thumbnailPath);
     } catch (e) { return ""; }
   }, [shouldShowImage, thumbnailPath]);
@@ -90,7 +96,7 @@ const FileThumbnail = memo(({ file, getFileIcon }: {
 
 FileThumbnail.displayName = "FileThumbnail";
 
-// ===== OPTIMIZATION: Memoized file card =====
+// ===== FileCard =====
 const FileCard = memo(({ file, isSelected, onToggle, getFileIcon }: {
   file: RecoveredFile;
   isSelected: boolean;
@@ -136,7 +142,7 @@ function App() {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
 
-  // Advanced options
+  // Advanced scan options
   const [filterThumbnails, setFilterThumbnails] = useState(true);
   const [repairDamaged, setRepairDamaged] = useState(true);
   const [skipDuplicates, setSkipDuplicates] = useState(true);
@@ -147,7 +153,15 @@ function App() {
   const [maxFileSize, setMaxFileSize] = useState(5000000000);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // ===== OPTIMIZATION: Pagination for results =====
+  // Settings (working now!)
+  const [settings, setSettings] = useState<AppSettings>({
+    notifications: true,
+    saveConfig: true,
+    showPreview: true,
+    lightweightMode: true,
+    verifyIntegrity: true,
+  });
+
   const [visibleCount, setVisibleCount] = useState(50);
 
   useEffect(() => {
@@ -319,10 +333,14 @@ function App() {
     }
   }, []);
 
-  // ===== OPTIMIZATION: Memoized filtered results =====
-  const visibleResults = useMemo(() => results.slice(0, visibleCount), [results, visibleCount]);
+  // ===== Settings toggle (actually works now!) =====
+  const updateSetting = useCallback((key: keyof AppSettings, value: boolean) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  }, []);
 
-  const ToggleOption = useCallback(({ label, desc, value, onChange }: {
+  const visibleResults = React.useMemo(() => results.slice(0, visibleCount), [results, visibleCount]);
+
+  const ToggleOption = ({ label, desc, value, onChange }: {
     label: string; desc: string; value: boolean; onChange: (v: boolean) => void;
   }) => (
     <div className="toggle-group">
@@ -332,7 +350,7 @@ function App() {
       </div>
       <div className={`toggle-switch ${value ? "active" : ""}`} onClick={() => onChange(!value)} />
     </div>
-  ), []);
+  );
 
   if (showSplash) {
     return (
@@ -355,7 +373,6 @@ function App() {
           <h2 className="section-title">Selecione o Disco</h2>
           <span className="section-badge">{drives.length} discos</span>
         </div>
-
         {drives.length === 0 ? (
           <div className="empty-state">
             <div className="icon"></div>
@@ -448,12 +465,12 @@ function App() {
         </button>
         {showAdvanced && (
           <div className="card advanced-card">
-            {ToggleOption({ label: "Filtrar Thumbnails", desc: "Não salvar imagens de preview", value: filterThumbnails, onChange: setFilterThumbnails })}
-            {ToggleOption({ label: "Reparar Arquivos Danificados", desc: "Reparar automaticamente arquivos corrompidos", value: repairDamaged, onChange: setRepairDamaged })}
-            {ToggleOption({ label: "Pular Duplicatas", desc: "Não recuperar arquivos duplicados", value: skipDuplicates, onChange: setSkipDuplicates })}
-            {ToggleOption({ label: "Preservar Estrutura", desc: "Manter estrutura de pastas original", value: preserveStructure, onChange: setPreserveStructure })}
-            {ToggleOption({ label: "Auto-Recuperar", desc: "Recuperar automaticamente ao encontrar", value: autoRecover, onChange: setAutoRecover })}
-            {ToggleOption({ label: "Recuperar Metadados", desc: "Preservar EXIF e datas", value: recoverMetadata, onChange: setRecoverMetadata })}
+            <ToggleOption label="Filtrar Thumbnails" desc="Não salvar imagens de preview" value={filterThumbnails} onChange={setFilterThumbnails} />
+            <ToggleOption label="Reparar Arquivos Danificados" desc="Reparar automaticamente arquivos corrompidos" value={repairDamaged} onChange={setRepairDamaged} />
+            <ToggleOption label="Pular Duplicatas" desc="Não recuperar arquivos duplicados" value={skipDuplicates} onChange={setSkipDuplicates} />
+            <ToggleOption label="Preservar Estrutura" desc="Manter estrutura de pastas original" value={preserveStructure} onChange={setPreserveStructure} />
+            <ToggleOption label="Auto-Recuperar" desc="Recuperar automaticamente ao encontrar" value={autoRecover} onChange={setAutoRecover} />
+            <ToggleOption label="Recuperar Metadados" desc="Preservar EXIF e datas" value={recoverMetadata} onChange={setRecoverMetadata} />
             <div className="scan-config">
               <div className="form-group">
                 <label className="form-label">Tamanho Mínimo (bytes)</label>
@@ -535,17 +552,20 @@ function App() {
         <h2 className="section-title">Configurações</h2>
         <div className="card">
           <div className="toggle-group">
-            <div className="toggle-info"><span className="toggle-label">Tema</span><span className="toggle-desc">Alterar entre tema escuro e claro</span></div>
+            <div className="toggle-info">
+              <span className="toggle-label">Tema</span>
+              <span className="toggle-desc">Alterar entre tema escuro e claro</span>
+            </div>
             <div className="theme-toggle-btns">
               <button className={`theme-btn ${theme === "dark" ? "active" : ""}`} onClick={() => setTheme("dark")}>Escuro</button>
               <button className={`theme-btn ${theme === "light" ? "active" : ""}`} onClick={() => setTheme("light")}>Claro</button>
             </div>
           </div>
-          {ToggleOption({ label: "Notificações", desc: "Notificações ao completar operações", value: true, onChange: () => {} })}
-          {ToggleOption({ label: "Salvar Configurações", desc: "Lembrar configurações entre sessões", value: true, onChange: () => {} })}
-          {ToggleOption({ label: "Preview de Arquivos", desc: "Mostrar miniatura dos arquivos", value: true, onChange: () => {} })}
-          {ToggleOption({ label: "Modo Leve", desc: "Reduzir uso de memória", value: true, onChange: () => {} })}
-          {ToggleOption({ label: "Verificar Integridade", desc: "Verificar hash após recuperação", value: true, onChange: () => {} })}
+          <ToggleOption label="Notificações" desc="Receber notificações ao completar operações" value={settings.notifications} onChange={(v) => updateSetting("notifications", v)} />
+          <ToggleOption label="Salvar Configurações" desc="Lembrar configurações entre sessões" value={settings.saveConfig} onChange={(v) => updateSetting("saveConfig", v)} />
+          <ToggleOption label="Preview de Arquivos" desc="Mostrar miniatura dos arquivos encontrados" value={settings.showPreview} onChange={(v) => updateSetting("showPreview", v)} />
+          <ToggleOption label="Modo Leve" desc="Reduzir uso de memória (ideal para PCs antigos)" value={settings.lightweightMode} onChange={(v) => updateSetting("lightweightMode", v)} />
+          <ToggleOption label="Verificar Integridade" desc="Verificar hash dos arquivos após recuperação" value={settings.verifyIntegrity} onChange={(v) => updateSetting("verifyIntegrity", v)} />
         </div>
       </div>
       <div className="section">

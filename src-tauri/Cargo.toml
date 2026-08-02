@@ -21,8 +21,6 @@ uuid = { version = "1", features = ["v4"] }
 chrono = "0.4"
 log = "0.4"
 env_logger = "0.10"
-rayon = "1.8"
-memmap2 = "0.9"
 
 [features]
 default = ["custom-protocol"]
@@ -34,5 +32,3 @@ opt-level = "s"
 lto = true
 codegen-units = 1
 panic = "abort"
-incremental = false
-split-debuginfo = "off"
